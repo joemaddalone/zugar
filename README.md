@@ -45,28 +45,24 @@ const result = await PhotoReader({ image: base64Image });
 
 ### Transformation Mode
 
-Transform structured input into structured output:
+Chain modules — feed the output of one into the next:
 
 ```typescript
-const AnalysisSchema = z.object({
-  subject: z.string().meta({ description: "Main subject" }),
-  tone: z.string().meta({ description: "Image tone" }),
-});
-
 const PromptSchema = z.object({
   prompt: z.string().meta({ description: "The generated image prompt" }),
 });
 
 const PromptWriter = zugar({
   description: "Generate an image generation prompt from photo analysis.",
-  inputSchema: AnalysisSchema,
+  inputSchema: PhotoSchema,
   schema: PromptSchema,
   model: createOpenAI({ apiKey: process.env.OPENAI_API_KEY })("gpt-4o"),
   inputKind: "schema",
 });
 
-const result = await PromptWriter({ data: { subject: "a cat", tone: "cozy" } });
-// result is fully typed as { prompt: string }
+// Pipeline: extract → transform
+const analysis = await PhotoReader({ image: base64Image });
+const { prompt } = await PromptWriter({ data: analysis });
 ```
 
 ## License
