@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    // Environment setup
+    "lib": ["ESNext"],
+    "target": "ES2022",
+
+    // Output
+    "outDir": "./dist",
+    "rootDir": "./src",
+
+    // Module resolution
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    // Emit
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "stripInternal": true,
+
+    // Type checking
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    // Misc
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}
