@@ -186,6 +186,8 @@ export function zugar<
     } else if (inputKind === "multimodal") {
       if (typedInput.image) contentParts.push({ type: "image", image: typedInput.image } as ImagePart);
       if (typedInput.text) contentParts.push({ type: "text", text: typedInput.text });
+    } else if (inputKind === "text" && typedInput.text) {
+      contentParts.push({ type: "text", text: typedInput.text });
     }
 
     let output: unknown;

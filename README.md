@@ -14,7 +14,20 @@ Zugar is a TypeScript library for building AI-powered pipelines with a DSPy-insp
 
 ```bash
 npm install zugar
+# or
+bun add zugar
 ```
+
+## Input Kinds
+
+| `inputKind` | Use case | Input shape |
+|---|---|---|
+| `"text"` | Extract from text | `{ text: string }` |
+| `"image"` | Extract from base64 image | `{ image: string }` |
+| `"multimodal"` | Combine text + image | `{ text?: string; image?: string }` |
+| `"schema"` | Transform structured data | `{ data: T }` |
+
+All modes accept an optional `context: string` for cross-module continuity.
 
 ## Quick Start
 
@@ -64,6 +77,10 @@ const PromptWriter = zugar({
 const analysis = await PhotoReader({ image: base64Image });
 const { prompt } = await PromptWriter({ data: analysis });
 ```
+
+## Re-exports
+
+`zugar` re-exports `z` (Zod) and `Output` (AI SDK) for convenience — no need to install them separately just for the types.
 
 ## License
 
