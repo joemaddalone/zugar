@@ -1,43 +1,43 @@
 {
-  "name": "zugar",
-  "version": "1.0.1",
-  "description": "Zugar is a library for building pipelines for AI-powered applications.",
-  "homepage": "https://github.com/joemaddalone/zugar#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/joemaddalone/zugar.git"
-  },
-  "license": "MIT",
-  "author": "Joe Maddalone",
-  "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "lint": "biome check",
-    "lint:fix": "biome check --fix",
-    "test": "bun test",
-    "prepack": "tsc"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "@ai-sdk/openai": "^3.0.53",
-    "ai": "^6.0.168",
-    "zod": "^4.3.6"
-  }
+	"name": "zugar",
+	"version": "1.0.1",
+	"description": "Zugar is a library for building pipelines for AI-powered applications.",
+	"homepage": "https://github.com/joemaddalone/zugar#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/joemaddalone/zugar.git"
+	},
+	"license": "MIT",
+	"author": "Joe Maddalone",
+	"type": "module",
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsc",
+		"lint": "biome check",
+		"lint:fix": "biome check --fix",
+		"test": "bun test",
+		"prepack": "tsc"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@ai-sdk/openai": "^3.0.53",
+		"ai": "^6.0.168",
+		"zod": "^4.3.6"
+	}
 }
