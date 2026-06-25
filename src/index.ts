@@ -220,10 +220,8 @@ export function zugar<
         temperature: config.temperature ?? 0.7,
         maxOutputTokens: config.maxTokens ?? 8192,
         output: Output.object({ schema: config.schema }),
-        messages: [
-          { role: "system", content: config.description },
-          { role: "user", content: contentParts },
-        ],
+        system: config.description,
+        messages: [{ role: "user", content: contentParts }],
       });
       output = result.output;
     } catch (e: unknown) {
