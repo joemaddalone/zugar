@@ -6,17 +6,17 @@ import { z } from "zod";
  * Reads .description set by .meta({ description: "..." }) or .describe("...").
  */
 export const extractFields = (
-  schema: SchemaWithDescription,
+	schema: SchemaWithDescription,
 ): Array<{ name: string; description: string }> => {
-  const fields: Array<{ name: string; description: string }> = [];
+	const fields: Array<{ name: string; description: string }> = [];
 
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    for (const [key, fieldSchema] of Object.entries(shape)) {
-      const desc = (fieldSchema as SchemaWithDescription).description ?? "";
-      fields.push({ name: key, description: desc });
-    }
-  }
+	if (schema instanceof z.ZodObject) {
+		const shape = schema.shape;
+		for (const [key, fieldSchema] of Object.entries(shape)) {
+			const desc = (fieldSchema as SchemaWithDescription).description ?? "";
+			fields.push({ name: key, description: desc });
+		}
+	}
 
-  return fields;
+	return fields;
 };
