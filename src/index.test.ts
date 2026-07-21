@@ -1,5 +1,32 @@
 import { test, expect } from "bun:test";
 import { z } from "./index";
+import { zugar } from "./index";
+
+// ── Mock model ────────────────────────────────────────────────────────────
+
+function createMockModel(output: unknown) {
+	return {
+		specificationVersion: "v4" as const,
+		provider: "mock.provider",
+		modelId: "mock-model",
+		supportedUrls: Promise.resolve([]),
+		doGenerate() {
+			return Promise.resolve({
+				content: [{ type: "text" as const, text: JSON.stringify(output) }],
+				finishReason: { unified: "stop" as const, raw: undefined },
+				usage: {
+					inputTokens: { total: 0, cached: 0 },
+					outputTokens: { total: 0 },
+					reasoningTokens: 0,
+					totalTokens: 0,
+				},
+			});
+		},
+		doStream() {
+			throw new Error("not implemented");
+		},
+	} as any;
+}
 
 // ── .meta() tests ────────────────────────────────────────────────────────────
 
@@ -208,4 +235,94 @@ test("throws on malformed JSON", () => {
 	expect(() => someModelsJustWontFuckingListen(input)).toThrow(
 		"Failed to parse LLM response as JSON",
 	);
+});
+
+// ── zugar() core function tests ──────────────────────────────────────────
+
+test("zugar() returns typed output in extraction mode", async () => {
+	const schema = z.object({
+		subject: z.string().meta({ description: "The main subject" }),
+		tone: z.string().meta({ description: "The mood" }),
+	});
+
+	const mockModel = createMockModel({ subject: "cat", tone: "chill" });
+
+	const module = zugar({
+		description: "Analyze text",
+		schema,
+		model: mockModel,
+		inputKind: "text",
+	});
+
+	const result = await module({ text: "a relaxed cat" });
+	expect(result).toEqual({ subject: "cat", tone: "chill" });
+});
+
+test("zugar() returns typed output in transformation mode", async () => {
+	const inputSchema = z.object({
+		subject: z.string().meta({ description: "The subject" }),
+	});
+
+	const outputSchema = z.object({
+		prompt: z.string().meta({ description: "Generated prompt" }),
+	});
+
+	const mockModel = createMockModel({ prompt: "A photo of a cat" });
+
+	const module = zugar({
+		description: "Generate prompt from analysis",
+		inputSchema,
+		schema: outputSchema,
+		model: mockModel,
+		inputKind: "schema",
+	});
+
+	const result = await module({ data: { subject: "cat" } });
+	expect(result).toEqual({ prompt: "A photo of a cat" });
+});
+
+test("zugar() throws on invalid input in transformation mode", async () => {
+	const inputSchema = z.object({
+		count: z.number().meta({ description: "A count" }),
+	});
+
+	const outputSchema = z.object({
+		result: z.string().meta({ description: "Result" }),
+	});
+
+	const mockModel = createMockModel({ result: "ok" });
+
+	const module = zugar({
+		description: "Process",
+		inputSchema,
+		schema: outputSchema,
+		model: mockModel,
+		inputKind: "schema",
+	});
+
+	await expect(module({ data: { count: "not a number" } })).rejects.toThrow(
+		"Input validation failed",
+	);
+});
+
+test("zugar() throws when inputSchema provided but data missing", async () => {
+	const inputSchema = z.object({
+		name: z.string().meta({ description: "A name" }),
+	});
+
+	const outputSchema = z.object({
+		greeting: z.string().meta({ description: "Greeting" }),
+	});
+
+	const mockModel = createMockModel({ greeting: "hello" });
+
+	const module = zugar({
+		description: "Greet",
+		inputSchema,
+		schema: outputSchema,
+		model: mockModel,
+		inputKind: "schema",
+	});
+
+	await expect(module({ text: "wrong shape" })).rejects.toThrow();
 });
