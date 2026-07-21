@@ -4,6 +4,14 @@ import type { SchemaWithDescription, ZugarConfig, ZugarModule } from "./types";
 import { buildUserPrompt } from "./buildUserPrompt";
 import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";
 
+function inferMediaType(data: string): string {
+	if (data.startsWith("data:")) {
+		const match = data.match(/^data:([^;]+)/);
+		if (match?.[1]) return match[1];
+	}
+	return "image";
+}
+
 export function zugar<
 	TInputSchema extends SchemaWithDescription | undefined,
 	TOutputSchema extends SchemaWithDescription,
@@ -41,11 +49,7 @@ export function zugar<
 		} else if (!config.inputSchema) {
 			// Extraction mode — no input validation needed
 		} else {
-			throw new Error(
-				config.inputSchema
-					? "When inputSchema is provided, pass { data: <object> }"
-					: "When no inputSchema is provided, pass { text?, image?, context? }",
-			);
+			throw new Error("When inputSchema is provided, pass { data: <object> }");
 		}
 
 		const userPrompt = buildUserPrompt(
@@ -65,14 +69,14 @@ export function zugar<
 			contentParts.push({
 				type: "file",
 				data: typedInput.image,
-				mediaType: "image",
+				mediaType: inferMediaType(typedInput.image),
 			});
 		} else if (inputKind === "multimodal") {
 			if (typedInput.image)
 				contentParts.push({
 					type: "file",
 					data: typedInput.image,
-					mediaType: "image",
+					mediaType: inferMediaType(typedInput.image),
 				});
 			if (typedInput.text)
 				contentParts.push({ type: "text", text: typedInput.text });
