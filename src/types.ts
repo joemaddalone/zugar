@@ -1,5 +1,5 @@
 import type { LanguageModel } from "ai";
-import type { ZodTypeAny } from "zod";
+import type { z, ZodTypeAny } from "zod";
 
 export type SchemaWithDescription = ZodTypeAny & { description?: string };
 
@@ -27,17 +27,13 @@ export type ZugarModule<
 > = {
 	schema: TOutputSchema;
 	description: string;
-	/**
-	 * Call the module.
-	 * - If inputSchema is provided, input must match it.
-	 * - Otherwise input is { text?, image?, context? }.
-	 */
-	(
-		input: TInputSchema extends ZodTypeAny
-			? {
-					data: TInputSchema extends ZodTypeAny ? TInputSchema : never;
-					context?: string;
-				}
-			: { text?: string; image?: string; context?: string },
-	): Promise<TOutputSchema extends ZodTypeAny ? TOutputSchema : never>;
-};
+} & (TInputSchema extends ZodTypeAny
+	? (input: {
+			data: z.infer<TInputSchema>;
+			context?: string;
+		}) => Promise<z.infer<TOutputSchema>>
+	: (input: {
+			text?: string;
+			image?: string;
+			context?: string;
+		}) => Promise<z.infer<TOutputSchema>>);
