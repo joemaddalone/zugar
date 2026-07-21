@@ -1,6 +1,7 @@
 import { test, expect } from "bun:test";
 import { z } from "./index";
 import { zugar } from "./index";
+import { extractFields } from "./extractFields";
 
 // ── Mock model ────────────────────────────────────────────────────────────
 
@@ -325,4 +326,47 @@ test("zugar() throws when inputSchema provided but data missing", async () => {
 	});
 
 	await expect(module({ text: "wrong shape" })).rejects.toThrow();
+});
+
+// ── extractFields direct tests ───────────────────────────────────────────
+
+test("extractFields recurses into nested ZodObject", () => {
+	const schema = z.object({
+		name: z.string().meta({ description: "A name" }),
+		address: z
+			.object({
+				city: z.string().meta({ description: "City name" }),
+				zip: z.string().meta({ description: "ZIP code" }),
+			})
+			.meta({ description: "Mailing address" }),
+	});
+
+	const fields = extractFields(schema);
+	expect(fields).toEqual([
+		{ name: "name", description: "A name" },
+		{ name: "address", description: "Mailing address" },
+		{ name: "address.city", description: "City name" },
+		{ name: "address.zip", description: "ZIP code" },
+	]);
+});
+
+test("extractFields returns empty array for non-object schema", () => {
+	const schema = z.string().meta({ description: "just a string" });
+	const fields = extractFields(schema);
+	expect(fields).toEqual([]);
+});
+
+test("extractFields handles arrays of objects gracefully", () => {
+	const schema = z.object({
+		items: z
+			.array(
+				z.object({
+					id: z.number().meta({ description: "Item ID" }),
+				}),
+			)
+			.meta({ description: "List of items" }),
+	});
+
+	const fields = extractFields(schema);
+	expect(fields).toEqual([{ name: "items", description: "List of items" }]);
 });
