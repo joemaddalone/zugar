@@ -3,7 +3,13 @@ import { z, type ZodObject, type ZodTypeAny } from "zod";
 // ── Input types ───────────────────────────────────────────────────────────
 
 interface FieldSchema {
-	type?: "string" | "number" | "boolean" | "string[]" | "number[]";
+	type?:
+		| "string"
+		| "number"
+		| "boolean"
+		| "string[]"
+		| "number[]"
+		| SchemaInput[];
 	description?: string;
 	enum?: string[];
 	optional?: boolean;
@@ -78,7 +84,15 @@ function buildFieldSchema(field: FieldSchema): ZodTypeAny {
 	// Enum
 	if (field.enum) {
 		field_ = z.enum(field.enum as [string, ...string[]]);
-	} else {
+	}
+	// Array of objects — type is an array of SchemaInput
+	else if (Array.isArray(field.type)) {
+		const itemSchema =
+			field.type.length > 0 ? buildField(field.type[0]) : z.unknown();
+		field_ = z.array(itemSchema);
+	}
+	// Primitive or array of primitives
+	else {
 		field_ = buildBaseField(field.type);
 	}
 

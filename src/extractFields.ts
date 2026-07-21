@@ -32,6 +32,12 @@ export const extractFields = (
 			if (inner instanceof z.ZodObject) {
 				fields.push({ name: fullName, description: desc });
 				fields.push(...extractFields(inner, fullName));
+			} else if (inner instanceof z.ZodArray) {
+				fields.push({ name: fullName, description: desc });
+				const itemInner = unwrap(inner._def.element);
+				if (itemInner instanceof z.ZodObject) {
+					fields.push(...extractFields(itemInner, `${fullName}[*]`));
+				}
 			} else {
 				fields.push({ name: fullName, description: desc });
 			}

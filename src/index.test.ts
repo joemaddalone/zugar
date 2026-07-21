@@ -369,7 +369,10 @@ test("extractFields handles arrays of objects gracefully", () => {
 	});
 
 	const fields = extractFields(schema);
-	expect(fields).toEqual([{ name: "items", description: "List of items" }]);
+	expect(fields).toEqual([
+		{ name: "items", description: "List of items" },
+		{ name: "items[*].id", description: "Item ID" },
+	]);
 });
 
 // ── createSchema tests ───────────────────────────────────────────────────
@@ -647,4 +650,47 @@ test("createSchema recreates full outputSchema", () => {
 			playlist: "AI Tools",
 		}),
 	).toBeTruthy();
+});
+
+test("createSchema supports array of objects with description", () => {
+	const schema = createSchema({
+		chapters: {
+			type: [
+				{
+					time: "The time in the video that the chapter starts at in the format of mm:ss",
+					title:
+						"Short chapter title (3-6 words) describing the main topic of this section",
+				},
+			],
+			description:
+				"Major topic sections only — typically 3-10 chapters for a tutorial. Not a chapter every 30 seconds.",
+		},
+	});
+
+	const result = schema.parse({
+		chapters: [
+			{ time: "0:00", title: "Introduction" },
+			{ time: "2:30", title: "Setup" },
+		],
+	});
+	expect(result.chapters).toHaveLength(2);
+
+	const fields = extractFields(schema);
+	expect(fields).toEqual([
+		{
+			name: "chapters",
+			description:
+				"Major topic sections only — typically 3-10 chapters for a tutorial. Not a chapter every 30 seconds.",
+		},
+		{
+			name: "chapters[*].time",
+			description:
+				"The time in the video that the chapter starts at in the format of mm:ss",
+		},
+		{
+			name: "chapters[*].title",
+			description:
+				"Short chapter title (3-6 words) describing the main topic of this section",
+		},
+	]);
 });
