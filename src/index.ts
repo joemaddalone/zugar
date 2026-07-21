@@ -129,3 +129,4 @@ export function zugar<
 }
 
 export { z, Output };
+export { createSchema } from "./createSchema";

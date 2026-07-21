@@ -78,9 +78,75 @@ const analysis = await PhotoReader({ image: base64Image });
 const { prompt } = await PromptWriter({ data: analysis });
 ```
 
-## Re-exports
+### Schema Shorthand (experimental)
 
-`zugar` re-exports `z` (Zod) and `Output` (AI SDK) for convenience — no need to install them separately just for the types.
+Use `createSchema` to build Zod schemas from plain JSON — string values become descriptions, objects become nested schemas, arrays indicate array fields:
+
+```typescript
+import { zugar, createSchema } from "zugar";
+
+const outputSchema = createSchema({
+  title: "Project name",
+  tags: ["Relevant tag"],
+  nested: { field: "Description" },
+});
+
+const module = zugar({
+  description: "Analyze a project",
+  schema: outputSchema,
+  model: myModel,
+  inputKind: "text",
+});
+```
+
+#### Field types
+
+| Input | Zod output |
+|---|---|
+| `"description"` | `z.string().meta({ description })` |
+| `42` | `z.number()` |
+| `true` | `z.boolean()` |
+| `["item"]` | `z.array(z.string())` |
+| `{ field: "desc" }` | nested `z.object()` |
+
+#### Advanced fields
+
+Use a `FieldSchema` object for enums, optional fields, and array constraints:
+
+```typescript
+const schema = createSchema({
+  // Enum
+  tone: {
+    enum: ["upbeat", "analytical", "urgent", "tutorial"],
+    description: "Video tone",
+  },
+
+  // Optional
+  notes: { optional: true, description: "User notes" },
+
+  // Array with constraints
+  demoIdeas: {
+    type: "string[]",
+    description: "2-4 concrete demo concepts",
+    min: 2,
+    max: 4,
+  },
+
+  // Explicit type
+  count: { type: "number", description: "Item count" },
+});
+```
+
+#### FieldSchema options
+
+| Property | Type | Description |
+|---|---|---|
+| `type` | `"string" \| "number" \| "boolean" \| "string[]" \| "number[]"` | Explicit type (inferred for simple values) |
+| `description` | `string` | Field description for the LLM prompt |
+| `enum` | `string[]` | Restrict to listed values |
+| `optional` | `boolean` | Allow `undefined` |
+| `min` | `number` | Minimum array length |
+| `max` | `number` | Maximum array length |
 
 ## License
 
