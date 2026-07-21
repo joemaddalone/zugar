@@ -186,3 +186,26 @@ test("description is used as system prompt, schema fields drive user prompt", ()
 	);
 	expect(userPrompt).toContain("  subject: The main subject");
 });
+
+// ── someModelsJustWontFuckingListen tests ──────────────────────────────────
+
+import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";
+
+test("strips markdown code blocks and parses JSON", () => {
+	const input = '```json\n{"key": "value"}\n```';
+	const result = someModelsJustWontFuckingListen(input);
+	expect(result).toEqual({ key: "value" });
+});
+
+test("parses plain JSON without code blocks", () => {
+	const input = '{"key": "value"}';
+	const result = someModelsJustWontFuckingListen(input);
+	expect(result).toEqual({ key: "value" });
+});
+
+test("throws on malformed JSON", () => {
+	const input = "not valid json";
+	expect(() => someModelsJustWontFuckingListen(input)).toThrow(
+		"Failed to parse LLM response as JSON",
+	);
+});

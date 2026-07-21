@@ -101,7 +101,14 @@ export function zugar<
 				typeof (e as { text: unknown }).text === "string"
 			) {
 				const errWithText = e as { text: string };
-				output = someModelsJustWontFuckingListen(errWithText.text);
+				const parsed = someModelsJustWontFuckingListen(errWithText.text);
+				const result = config.schema.safeParse(parsed);
+				if (!result.success) {
+					throw new Error(
+						`LLM response did not match output schema: ${result.error.message}`,
+					);
+				}
+				output = result.data;
 			} else {
 				throw e;
 			}

@@ -4,5 +4,11 @@ export const someModelsJustWontFuckingListen = (text: string): unknown => {
 		.replace(/^```(?:json)?\s*/i, "")
 		.replace(/\s*```$/, "");
 
-	return JSON.parse(withoutMarkdown);
+	try {
+		return JSON.parse(withoutMarkdown);
+	} catch {
+		throw new Error(
+			`Failed to parse LLM response as JSON: ${withoutMarkdown.slice(0, 200)}`,
+		);
+	}
 };
