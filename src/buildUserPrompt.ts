@@ -46,6 +46,8 @@ export const buildUserPrompt = (
 
 		if (inputKind === "image") {
 			lines.push("Analyze the provided image and extract all fields.");
+		} else if (inputKind === "audio") {
+			lines.push("Analyze the provided audio and extract all fields.");
 		} else if (inputKind === "text") {
 			lines.push("Analyze the provided text and extract all fields.");
 		} else {

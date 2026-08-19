@@ -3,7 +3,7 @@ import type { z, ZodTypeAny } from "zod";
 
 export type SchemaWithDescription = ZodTypeAny & { description?: string };
 
-export type InputKind = "text" | "image" | "multimodal" | "schema";
+export type InputKind = "text" | "image" | "audio" | "multimodal" | "schema";
 
 export type ZugarConfig<
 	TInputSchema extends ZodTypeAny | undefined,
@@ -35,5 +35,6 @@ export type ZugarModule<
 	: (input: {
 			text?: string;
 			image?: string;
+			audio?: string;
 			context?: string;
 		}) => Promise<z.infer<TOutputSchema>>);

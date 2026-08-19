@@ -4,12 +4,12 @@ import type { SchemaWithDescription, ZugarConfig, ZugarModule } from "./types";
 import { buildUserPrompt } from "./buildUserPrompt";
 import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";
 
-function inferMediaType(data: string): string {
+function inferMediaType(data: string, fallback: string = "image/png"): string {
 	if (data.startsWith("data:")) {
 		const match = data.match(/^data:([^;]+)/);
 		if (match?.[1]) return match[1];
 	}
-	return "image";
+	return fallback;
 }
 
 export function zugar<
@@ -26,6 +26,7 @@ export function zugar<
 		data?: unknown;
 		text?: string;
 		image?: string;
+		audio?: string;
 		context?: string;
 	};
 
@@ -34,6 +35,7 @@ export function zugar<
 			data?: Record<string, unknown>;
 			text?: string;
 			image?: string;
+			audio?: string;
 			context?: string;
 		};
 
@@ -71,12 +73,24 @@ export function zugar<
 				data: typedInput.image,
 				mediaType: inferMediaType(typedInput.image),
 			});
+		} else if (inputKind === "audio" && typedInput.audio) {
+			contentParts.push({
+				type: "file",
+				data: typedInput.audio,
+				mediaType: inferMediaType(typedInput.audio, "audio/wav"),
+			});
 		} else if (inputKind === "multimodal") {
 			if (typedInput.image)
 				contentParts.push({
 					type: "file",
 					data: typedInput.image,
 					mediaType: inferMediaType(typedInput.image),
+				});
+			if (typedInput.audio)
+				contentParts.push({
+					type: "file",
+					data: typedInput.audio,
+					mediaType: inferMediaType(typedInput.audio, "audio/wav"),
 				});
 			if (typedInput.text)
 				contentParts.push({ type: "text", text: typedInput.text });
