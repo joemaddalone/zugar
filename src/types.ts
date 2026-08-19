@@ -1,6 +1,13 @@
-import type { LanguageModel } from "ai";
+import type { LanguageModel, TranscriptionModel } from "ai";
 import type { z, ZodTypeAny } from "zod";
 
+type JSONValue = null | string | number | boolean | JSONObject | JSONArray;
+type JSONObject = {
+	[key: string]: JSONValue | undefined;
+};
+type JSONArray = JSONValue[];
+
+export type ProviderOptions = Record<string, JSONObject>;
 export type SchemaWithDescription = ZodTypeAny & { description?: string };
 
 export type InputKind = "text" | "image" | "audio" | "multimodal" | "schema";
@@ -17,8 +24,19 @@ export type ZugarConfig<
 	inputSchema?: TInputSchema;
 	model: LanguageModel;
 	inputKind?: InputKind;
+	/**
+	 * Transcription model for audio input kind.
+	 * When provided with inputKind: "audio", audio is transcribed to text
+	 * before being sent to the language model for structured extraction.
+	 */
+	transcriptionModel?: TranscriptionModel;
 	temperature?: number;
 	maxTokens?: number;
+	/**
+	 * Provider-specific options for the transcription model call.
+	 * (e.g. { openai: { language: "en", temperature: 0 } }).
+	 */
+	providerOptions?: ProviderOptions;
 };
 
 export type ZugarModule<
@@ -35,6 +53,6 @@ export type ZugarModule<
 	: (input: {
 			text?: string;
 			image?: string;
-			audio?: string;
+			audio?: string | Uint8Array | ArrayBuffer | Buffer | URL;
 			context?: string;
 		}) => Promise<z.infer<TOutputSchema>>);

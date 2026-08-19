@@ -1,13 +1,21 @@
-import { generateText, Output, type FilePart, type TextPart } from "ai";
+import {
+	generateText,
+	transcribe,
+	Output,
+	type FilePart,
+	type TextPart,
+} from "ai";
 import { z } from "zod";
 import type { SchemaWithDescription, ZugarConfig, ZugarModule } from "./types";
 import { buildUserPrompt } from "./buildUserPrompt";
 import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";
 
-function inferMediaType(data: string, fallback: string = "image/png"): string {
-	if (data.startsWith("data:")) {
-		const match = data.match(/^data:([^;]+)/);
-		if (match?.[1]) return match[1];
+function inferMediaType(data: unknown, fallback: string = "image/png"): string {
+	if (typeof data === "string") {
+		if (data.startsWith("data:")) {
+			const match = data.match(/^data:([^;]+)/);
+			if (match?.[1]) return match[1];
+		}
 	}
 	return fallback;
 }
@@ -26,7 +34,7 @@ export function zugar<
 		data?: unknown;
 		text?: string;
 		image?: string;
-		audio?: string;
+		audio?: string | Uint8Array | ArrayBuffer | Buffer | URL;
 		context?: string;
 	};
 
@@ -35,7 +43,7 @@ export function zugar<
 			data?: Record<string, unknown>;
 			text?: string;
 			image?: string;
-			audio?: string;
+			audio?: string | Uint8Array | ArrayBuffer | Buffer | URL;
 			context?: string;
 		};
 
@@ -74,11 +82,22 @@ export function zugar<
 				mediaType: inferMediaType(typedInput.image),
 			});
 		} else if (inputKind === "audio" && typedInput.audio) {
-			contentParts.push({
-				type: "file",
-				data: typedInput.audio,
-				mediaType: inferMediaType(typedInput.audio, "audio/wav"),
-			});
+			if (config.transcriptionModel) {
+				// Transcribe audio to text via the /v1/audio/transcriptions endpoint,
+				// then feed the transcript to the language model as text.
+				const transcript = await transcribe({
+					model: config.transcriptionModel,
+					audio: typedInput.audio,
+					providerOptions: config.providerOptions,
+				});
+				contentParts.push({ type: "text", text: transcript.text });
+			} else {
+				contentParts.push({
+					type: "file",
+					data: typedInput.audio,
+					mediaType: inferMediaType(typedInput.audio, "audio/wav"),
+				});
+			}
 		} else if (inputKind === "multimodal") {
 			if (typedInput.image)
 				contentParts.push({
@@ -86,12 +105,22 @@ export function zugar<
 					data: typedInput.image,
 					mediaType: inferMediaType(typedInput.image),
 				});
-			if (typedInput.audio)
-				contentParts.push({
-					type: "file",
-					data: typedInput.audio,
-					mediaType: inferMediaType(typedInput.audio, "audio/wav"),
-				});
+			if (typedInput.audio) {
+				if (config.transcriptionModel) {
+					const transcript = await transcribe({
+						model: config.transcriptionModel,
+						audio: typedInput.audio,
+						providerOptions: config.providerOptions,
+					});
+					contentParts.push({ type: "text", text: transcript.text });
+				} else {
+					contentParts.push({
+						type: "file",
+						data: typedInput.audio,
+						mediaType: inferMediaType(typedInput.audio, "audio/wav"),
+					});
+				}
+			}
 			if (typedInput.text)
 				contentParts.push({ type: "text", text: typedInput.text });
 		} else if (inputKind === "text" && typedInput.text) {
@@ -144,3 +173,5 @@ export function zugar<
 
 export { z, Output };
 export { createSchema } from "./createSchema";
+export { transcribeAudio } from "./transcribeAudio";
+export type { TranscriptionResult } from "./transcribeAudio";
