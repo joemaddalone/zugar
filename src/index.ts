@@ -171,6 +171,9 @@ export function zugar<
 	return module as unknown as ZugarModule<TInputSchema, TOutputSchema>;
 }
 
+export type {
+  SchemaWithDescription, ZugarConfig, ZugarModule
+} from './types';
 export { z, Output };
 export { createSchema } from "./createSchema";
 export { transcribeAudio } from "./transcribeAudio";
