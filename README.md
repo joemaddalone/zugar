@@ -6,7 +6,7 @@ Zugar is a TypeScript library for building AI-powered pipelines with a DSPy-insp
 
 - **Zod v4 `.meta()` descriptions** — your schema *is* the program. No more duplicating field descriptions in prompt strings.
 - **Two modes** — extraction (raw input → structured output) and transformation (structured input → structured output).
-- **Multimodal support** — text, image, and multimodal inputs out of the box.
+- **Multimodal support** — text, image, audio, and multimodal inputs out of the box.
 - **Full type safety** — input and output types are inferred from your Zod schemas.
 - **Zero config prompts** — Zugar builds the user prompt from your schema's `.meta()` descriptions automatically.
 
@@ -24,7 +24,8 @@ bun add zugar
 |---|---|---|
 | `"text"` | Extract from text | `{ text: string }` |
 | `"image"` | Extract from base64 image | `{ image: string }` |
-| `"multimodal"` | Combine text + image | `{ text?: string; image?: string }` |
+| `"audio"` | Transcribe/analyze audio | `{ audio: string \| Uint8Array \| ArrayBuffer \| Buffer \| URL }` |
+| `"multimodal"` | Combine text + image (+ audio) | `{ text?: string; image?: string; audio?: string \| Uint8Array \| ArrayBuffer \| Buffer \| URL }` |
 | `"schema"` | Transform structured data | `{ data: T }` |
 
 All modes accept an optional `context: string` for cross-module continuity.
@@ -54,6 +55,33 @@ const PhotoReader = zugar({
 
 const result = await PhotoReader({ image: base64Image });
 // result is fully typed as { subject: string; style: string; tone: string }
+```
+
+### Audio Mode
+
+With a transcription model, audio is transcribed first and the transcript is
+sent to the language model as text. Without one, the audio is attached
+directly as a file part.
+
+```typescript
+import { zugar, z } from "zugar";
+import { createOpenAI } from "@ai-sdk/openai";
+
+const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const MeetingNotes = zugar({
+  description: "Extract action items from a meeting recording.",
+  schema: z.object({
+    actions: z.array(z.string()).meta({ description: "Action items" }),
+  }),
+  model: openai("gpt-4o"),
+  inputKind: "audio",
+  // Optional: transcribe before extraction (recommended)
+  transcriptionModel: openai.transcription("whisper-1"),
+  providerOptions: { openai: { language: "en" } },
+});
+
+const result = await MeetingNotes({ audio: base64OrBufferAudio });
 ```
 
 ### Transformation Mode
@@ -147,6 +175,24 @@ const schema = createSchema({
 | `optional` | `boolean` | Allow `undefined` |
 | `min` | `number` | Minimum array length |
 | `max` | `number` | Maximum array length |
+
+## Standalone Transcription
+
+`transcribeAudio` exposes the same transcription path used by Audio Mode:
+
+```typescript
+import { createOpenAI } from "@ai-sdk/openai";
+import { transcribeAudio } from "zugar";
+
+const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const result = await transcribeAudio({
+  model: openai.transcription("whisper-1"),
+  audio: "data:audio/wav;base64,UklGR...",
+});
+console.log(result.text);
+```
+
+It also accepts an `abortSignal` for cancellation.
 
 ## License
 
