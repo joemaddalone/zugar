@@ -736,6 +736,25 @@ test("createSchema supports array min/max constraints", () => {
 	expect(() => schema.parse({ items: ["a", "b", "c", "d"] })).toThrow();
 });
 
+test("createSchema applies min/max to explicitly typed string arrays", () => {
+	const schema = createSchema({
+		demoIdeas: {
+			type: "string[]",
+			description: "Demo concepts",
+			min: 2,
+			max: 4,
+		},
+	});
+
+	expect(schema.parse({ demoIdeas: ["a", "b"] })).toEqual({
+		demoIdeas: ["a", "b"],
+	});
+	expect(() => schema.parse({ demoIdeas: ["only-one"] })).toThrow();
+	expect(() =>
+		schema.parse({ demoIdeas: ["a", "b", "c", "d", "e"] }),
+	).toThrow();
+});
+
 test("createSchema supports explicit type annotation", () => {
 	const schema = createSchema({
 		count: { type: "number", description: "A count" },

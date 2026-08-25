@@ -102,7 +102,7 @@ function buildFieldSchema(field: FieldSchema): ZodTypeAny {
 	}
 
 	// Array constraints
-	if (field_.constructor.name === "ZodArray") {
+	if (field_ instanceof z.ZodArray) {
 		let arr = field_ as z.ZodArray<ZodTypeAny>;
 		if (field.min !== undefined) arr = arr.min(field.min);
 		if (field.max !== undefined) arr = arr.max(field.max);
