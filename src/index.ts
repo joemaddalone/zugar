@@ -172,8 +172,10 @@ export function zugar<
 }
 
 export type {
-  SchemaWithDescription, ZugarConfig, ZugarModule
-} from './types';
+	SchemaWithDescription,
+	ZugarConfig,
+	ZugarModule,
+} from "./types";
 export { z, Output };
 export { createSchema } from "./createSchema";
 export { transcribeAudio } from "./transcribeAudio";
