@@ -29,7 +29,8 @@ export function zugar<
 >(
 	config: ZugarConfig<TInputSchema, TOutputSchema>,
 ): ZugarModule<TInputSchema, TOutputSchema> {
-	const inputKind = config.inputKind ?? "text";
+	const inputKind =
+		config.inputKind ?? (config.inputSchema ? "schema" : "text");
 
 	// Shared runtime input shape — TS can't narrow conditional types at runtime,
 	// so we use this union and cast at the boundary.

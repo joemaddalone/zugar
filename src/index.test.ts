@@ -384,6 +384,48 @@ test("zugar() accepts multimodal kind with any single modality", async () => {
 	await expect(module({ text: "just text" })).resolves.toEqual({ x: "y" });
 });
 
+test("zugar() implies inputKind schema when inputSchema is provided", async () => {
+	const inputSchema = z.object({
+		subject: z.string().meta({ description: "s" }),
+	});
+	const outputSchema = z.object({
+		prompt: z.string().meta({ description: "p" }),
+	});
+	const captured: { args?: any } = {};
+	const module = zugar({
+		description: "d",
+		inputSchema,
+		schema: outputSchema,
+		model: createCapturingMockModel({ prompt: "A cat" }, captured),
+	});
+
+	const result = await module({ data: { subject: "cat" } });
+	expect(result).toEqual({ prompt: "A cat" });
+
+	const userMessage = captured.args.prompt.at(-1);
+	const parts = Array.isArray(userMessage?.content)
+		? userMessage.content
+		: [userMessage?.content];
+	expect(parts[0]?.text).toContain("Input fields:");
+	expect(parts[0]?.text).toContain("  subject: cat");
+});
+
+test("zugar() still validates input data when inputKind is implied", async () => {
+	const inputSchema = z.object({
+		count: z.number().meta({ description: "c" }),
+	});
+	const module = zugar({
+		description: "d",
+		inputSchema,
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createMockModel({ x: "y" }),
+	});
+
+	await expect(
+		module({ data: { count: "not a number" } } as any),
+	).rejects.toThrow("Input validation failed");
+});
+
 test("zugar() recovers when model error carries fenced JSON in .text", async () => {
 	const failingModel = {
 		...createMockModel({ unused: true }),
