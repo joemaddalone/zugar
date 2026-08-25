@@ -23,11 +23,11 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "tsc",
+		"build": "tsc -p tsconfig.build.json",
 		"lint": "biome check",
 		"lint:fix": "biome check --fix",
 		"test": "bun test",
-		"prepack": "tsc"
+		"prepack": "tsc -p tsconfig.build.json"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",

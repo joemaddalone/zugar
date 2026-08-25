@@ -24,8 +24,8 @@ export function inferMediaType(
 }
 
 export function zugar<
-	TInputSchema extends SchemaWithDescription | undefined,
-	TOutputSchema extends SchemaWithDescription,
+	TInputSchema extends SchemaWithDescription | undefined = undefined,
+	TOutputSchema extends SchemaWithDescription = SchemaWithDescription,
 >(
 	config: ZugarConfig<TInputSchema, TOutputSchema>,
 ): ZugarModule<TInputSchema, TOutputSchema> {

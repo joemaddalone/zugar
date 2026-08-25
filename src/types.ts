@@ -45,7 +45,7 @@ export type ZugarModule<
 > = {
 	schema: TOutputSchema;
 	description: string;
-} & (TInputSchema extends ZodTypeAny
+} & ([TInputSchema] extends [ZodTypeAny]
 	? (input: {
 			data: z.infer<TInputSchema>;
 			context?: string;

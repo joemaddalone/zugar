@@ -299,9 +299,9 @@ test("zugar() throws on invalid input in transformation mode", async () => {
 		inputKind: "schema",
 	});
 
-	await expect(module({ data: { count: "not a number" } })).rejects.toThrow(
-		"Input validation failed",
-	);
+	await expect(
+		module({ data: { count: "not a number" } } as any),
+	).rejects.toThrow("Input validation failed");
 });
 
 test("zugar() throws when inputSchema provided but data missing", async () => {
@@ -323,7 +323,7 @@ test("zugar() throws when inputSchema provided but data missing", async () => {
 		inputKind: "schema",
 	});
 
-	await expect(module({ text: "wrong shape" })).rejects.toThrow();
+	await expect(module({ text: "wrong shape" } as any)).rejects.toThrow();
 });
 
 test("zugar() rejects text kind without text", async () => {
