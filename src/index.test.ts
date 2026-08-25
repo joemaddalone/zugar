@@ -4,6 +4,7 @@ import { zugar } from "./index";
 import { extractFields } from "./extractFields";
 import { createSchema } from "./createSchema";
 import { buildUserPrompt } from "./buildUserPrompt";
+import { inferMediaType } from "./index";
 
 // ── Mock model ────────────────────────────────────────────────────────────
 
@@ -29,6 +30,16 @@ function createMockModel(output: unknown) {
 			throw new Error("not implemented");
 		},
 	} as any;
+}
+
+function createCapturingMockModel(output: unknown, captured: { args?: any }) {
+	const base = createMockModel(output) as any;
+	const originalDoGenerate = base.doGenerate.bind(base);
+	base.doGenerate = (args: any) => {
+		captured.args = args;
+		return originalDoGenerate(args);
+	};
+	return base;
 }
 
 // ── .meta() tests ────────────────────────────────────────────────────────────
@@ -371,6 +382,148 @@ test("zugar() accepts multimodal kind with any single modality", async () => {
 		inputKind: "multimodal",
 	});
 	await expect(module({ text: "just text" })).resolves.toEqual({ x: "y" });
+});
+
+test("zugar() recovers when model error carries fenced JSON in .text", async () => {
+	const failingModel = {
+		...createMockModel({ unused: true }),
+		doGenerate() {
+			return Promise.reject({
+				text: '```json\n{"subject": "cat", "tone": "chill"}\n```',
+			});
+		},
+	} as any;
+
+	const module = zugar({
+		description: "d",
+		schema: z.object({
+			subject: z.string().meta({ description: "s" }),
+			tone: z.string().meta({ description: "t" }),
+		}),
+		model: failingModel,
+		inputKind: "text",
+	});
+
+	await expect(module({ text: "a cat" })).resolves.toEqual({
+		subject: "cat",
+		tone: "chill",
+	});
+});
+
+test("zugar() throws schema-mismatch error when fallback parses but fails validation", async () => {
+	const failingModel = {
+		...createMockModel({ unused: true }),
+		doGenerate() {
+			return Promise.reject({ text: '```json\n{"wrong": "shape"}\n```' });
+		},
+	} as any;
+
+	const module = zugar({
+		description: "d",
+		schema: z.object({
+			subject: z.string().meta({ description: "s" }),
+		}),
+		model: failingModel,
+		inputKind: "text",
+	});
+
+	await expect(module({ text: "a cat" })).rejects.toThrow(
+		"LLM response did not match output schema",
+	);
+});
+
+test("zugar() rethrows errors without a .text property", async () => {
+	const failingModel = {
+		...createMockModel({ unused: true }),
+		doGenerate() {
+			return Promise.reject(new Error("network down"));
+		},
+	} as any;
+
+	const module = zugar({
+		description: "d",
+		schema: z.object({
+			subject: z.string().meta({ description: "s" }),
+		}),
+		model: failingModel,
+		inputKind: "text",
+	});
+
+	await expect(module({ text: "a cat" })).rejects.toThrow("network down");
+});
+
+test("inferMediaType extracts type from data URLs", () => {
+	expect(inferMediaType("data:image/jpeg;base64,abc")).toBe("image/jpeg");
+});
+
+test("inferMediaType falls back to image/png without a data URL", () => {
+	expect(inferMediaType("UklGRh==")).toBe("image/png");
+});
+
+test("inferMediaType honors explicit fallback", () => {
+	expect(inferMediaType("plain-string", "audio/wav")).toBe("audio/wav");
+});
+
+test("audio kind without transcriptionModel attaches a wav file part", async () => {
+	const captured: { args?: any } = {};
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createCapturingMockModel({ x: "y" }, captured),
+		inputKind: "audio",
+	});
+
+	await module({ audio: "UklGRh==" });
+
+	const userMessage = captured.args.prompt.at(-1);
+	const parts = Array.isArray(userMessage?.content)
+		? userMessage.content
+		: [userMessage?.content];
+	expect(
+		parts.some((p: any) => p.type === "file" && p.mediaType === "audio/wav"),
+	).toBe(true);
+});
+
+test("multimodal kind orders prompt, image, transcript, text", async () => {
+	const captured: { args?: any } = {};
+	const transcriptionModel = {
+		specificationVersion: "v2",
+		provider: "mock.provider",
+		modelId: "mock-whisper",
+		doGenerate: async () => ({
+			text: "hello world",
+			durationSeconds: 1,
+			language: "en",
+			warnings: [],
+		}),
+	} as any;
+
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createCapturingMockModel({ x: "y" }, captured),
+		inputKind: "multimodal",
+		transcriptionModel,
+	});
+
+	await module({
+		image: "data:image/png;base64,abc",
+		audio: "UklGRh==",
+		text: "describe it",
+	});
+
+	const userMessage = captured.args.prompt.at(-1);
+	const parts = Array.isArray(userMessage?.content)
+		? userMessage.content
+		: [userMessage?.content];
+	expect(parts[0]?.type).toBe("text"); // built prompt
+	expect(
+		parts.some((p: any) => p.type === "file" && p.mediaType === "image/png"),
+	).toBe(true);
+	expect(
+		parts.some((p: any) => p.type === "text" && p.text === "hello world"),
+	).toBe(true);
+	expect(parts.at(-1)).toMatchObject({ type: "text", text: "describe it" });
 });
 
 // ── extractFields direct tests ───────────────────────────────────────────

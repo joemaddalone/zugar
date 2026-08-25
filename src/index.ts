@@ -10,7 +10,10 @@ import type { SchemaWithDescription, ZugarConfig, ZugarModule } from "./types";
 import { buildUserPrompt } from "./buildUserPrompt";
 import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";
 
-function inferMediaType(data: unknown, fallback: string = "image/png"): string {
+export function inferMediaType(
+	data: unknown,
+	fallback: string = "image/png",
+): string {
 	if (typeof data === "string") {
 		if (data.startsWith("data:")) {
 			const match = data.match(/^data:([^;]+)/);
