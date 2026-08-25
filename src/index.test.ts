@@ -3,6 +3,7 @@ import { z } from "./index";
 import { zugar } from "./index";
 import { extractFields } from "./extractFields";
 import { createSchema } from "./createSchema";
+import { buildUserPrompt } from "./buildUserPrompt";
 
 // ── Mock model ────────────────────────────────────────────────────────────
 
@@ -70,150 +71,92 @@ test("extractFields reads .description from Zod v4 fields", () => {
 	]);
 });
 
-// ── Extraction mode prompt tests ─────────────────────────────────────────────
+// ── buildUserPrompt direct tests ────────────────────────────────────────────
 
-test("extraction mode prompt includes output field descriptions", () => {
+test("buildUserPrompt lists output fields in extraction mode", () => {
 	const schema = z.object({
 		subject: z.string().meta({ description: "The main subject" }),
 		tone: z.string().meta({ description: "The mood" }),
 	});
 
-	const outputFields: Array<{ name: string; description: string }> = [];
-	const shape = schema.shape;
-	for (const [key, fieldSchema] of Object.entries(shape)) {
-		const desc = (fieldSchema as any).description ?? "";
-		outputFields.push({ name: key, description: desc });
-	}
+	const prompt = buildUserPrompt("image", undefined, schema);
 
-	const lines = [
-		"Return a JSON object with these EXACT keys:",
-		...outputFields.map((f) => `  ${f.name}: ${f.description}`),
-		"",
-		"Analyze the provided image and extract all fields.",
-		"",
-		"Respond with ONLY the JSON object. Do not include markdown or explanations.",
-	];
-
-	const prompt = lines.join("\n");
-
+	expect(prompt).toContain("Return a JSON object with these EXACT keys:");
 	expect(prompt).toContain("  subject: The main subject");
 	expect(prompt).toContain("  tone: The mood");
-	expect(prompt).toContain("Analyze the provided image");
-	expect(prompt).toContain("Respond with ONLY the JSON object");
+	expect(prompt).toContain(
+		"Analyze the provided image and extract all fields.",
+	);
+	expect(prompt).toContain(
+		"Respond with ONLY the JSON object. Do not include markdown or explanations.",
+	);
 });
 
-// ── Transformation mode prompt tests ─────────────────────────────────────────
-
-test("transformation mode prompt includes both input and output field descriptions", () => {
+test("buildUserPrompt renders input data in transformation mode", () => {
 	const inputSchema = z.object({
 		subject: z.string().meta({ description: "The main subject" }),
 		tone: z.string().meta({ description: "The mood" }),
 	});
-
 	const outputSchema = z.object({
 		prompt: z.string().meta({ description: "The generated prompt" }),
 	});
 
-	const inputData: Record<string, unknown> = { subject: "cat", tone: "chill" };
+	const result = buildUserPrompt("schema", inputSchema, outputSchema, {
+		subject: "cat",
+		tone: "chill",
+	});
 
-	const inputFields: Array<{ name: string; description: string }> = [];
-	const iShape = inputSchema.shape;
-	for (const [key, fieldSchema] of Object.entries(iShape)) {
-		const desc = (fieldSchema as any).description ?? "";
-		inputFields.push({ name: key, description: desc });
-	}
-
-	const outputFields: Array<{ name: string; description: string }> = [];
-	const oShape = outputSchema.shape;
-	for (const [key, fieldSchema] of Object.entries(oShape)) {
-		const desc = (fieldSchema as any).description ?? "";
-		outputFields.push({ name: key, description: desc });
-	}
-
-	const lines = [
-		"Input fields:",
-		...inputFields.map((f) => `  ${f.name}: ${f.description}`),
-		"",
-		"Input data:",
-		...inputFields.map((f) => `  ${f.name}: ${inputData[f.name] ?? "(empty)"}`),
-		"",
-		"Output fields:",
-		...outputFields.map((f) => `  ${f.name}: ${f.description}`),
-		"",
-		"Respond with ONLY the JSON object. Do not include markdown or explanations.",
-	];
-
-	const prompt = lines.join("\n");
-
-	expect(prompt).toContain("Input fields:");
-	expect(prompt).toContain("  subject: The main subject");
-	expect(prompt).toContain("  tone: The mood");
-	expect(prompt).toContain("Input data:");
-	expect(prompt).toContain("  subject: cat");
-	expect(prompt).toContain("  tone: chill");
-	expect(prompt).toContain("Output fields:");
-	expect(prompt).toContain("  prompt: The generated prompt");
-	expect(prompt).toContain("Respond with ONLY the JSON object");
+	expect(result).toContain("Input fields:");
+	expect(result).toContain("  subject: The main subject");
+	expect(result).toContain("Input data:");
+	expect(result).toContain("  subject: cat");
+	expect(result).toContain("  tone: chill");
+	expect(result).toContain("Output fields:");
+	expect(result).toContain("  prompt: The generated prompt");
 });
 
-test("transformation mode handles empty input values", () => {
+test("buildUserPrompt marks missing values as (empty)", () => {
+	const inputSchema = z.object({
+		subject: z.string().meta({ description: "A subject" }),
+		tone: z.string().meta({ description: "A tone" }),
+	});
+
+	const result = buildUserPrompt("schema", inputSchema, inputSchema, {
+		subject: "cat",
+		tone: undefined,
+	});
+
+	expect(result).toContain("  subject: cat");
+	expect(result).toContain("  tone: (empty)");
+});
+
+test("buildUserPrompt does not mark empty strings as (empty)", () => {
 	const inputSchema = z.object({
 		name: z.string().meta({ description: "A name" }),
 	});
 
-	const inputData: Record<string, unknown> = { name: "" };
+	const result = buildUserPrompt("schema", inputSchema, inputSchema, {
+		name: "",
+	});
 
-	const inputFields: Array<{ name: string; description: string }> = [];
-	const iShape = inputSchema.shape;
-	for (const [key, fieldSchema] of Object.entries(iShape)) {
-		const desc = (fieldSchema as any).description ?? "";
-		inputFields.push({ name: key, description: desc });
-	}
-
-	const lines = [
-		"Input fields:",
-		...inputFields.map((f) => `  ${f.name}: ${f.description}`),
-		"",
-		"Input data:",
-		...inputFields.map((f) => `  ${f.name}: ${inputData[f.name] ?? "(empty)"}`),
-	];
-
-	const prompt = lines.join("\n");
-	expect(prompt).toContain("  name: ");
+	expect(result).toContain("  name: ");
+	expect(result).not.toContain("(empty)");
 });
 
-// ── System prompt is just description ────────────────────────────────────────
+test("buildUserPrompt appends context when provided", () => {
+	const schema = z.object({
+		x: z.string().meta({ description: "An x" }),
+	});
 
-test("description is used as system prompt, schema fields drive user prompt", () => {
-	const config = {
-		description: "You are a photography analyst. Extract metadata from images.",
-		schema: z.object({
-			subject: z.string().meta({ description: "The main subject" }),
-		}),
-		inputKind: "image" as const,
-	};
-
-	const outputFields: Array<{ name: string; description: string }> = [];
-	const shape = config.schema.shape;
-	for (const [key, fieldSchema] of Object.entries(shape)) {
-		const desc = (fieldSchema as any).description ?? "";
-		outputFields.push({ name: key, description: desc });
-	}
-
-	const lines = [
-		"Return a JSON object with these EXACT keys:",
-		...outputFields.map((f) => `  ${f.name}: ${f.description}`),
-		"",
-		"Analyze the provided image and extract all fields.",
-	];
-
-	const systemPrompt = config.description;
-	const userPrompt = lines.join("\n");
-
-	expect(systemPrompt).toBe(
-		"You are a photography analyst. Extract metadata from images.",
+	const withContext = buildUserPrompt(
+		"text",
+		undefined,
+		schema,
+		undefined,
+		"prior step",
 	);
-	expect(userPrompt).toContain("  subject: The main subject");
+
+	expect(withContext).toContain("Previous context: prior step");
 });
 
 // ── someModelsJustWontFuckingListen tests ──────────────────────────────────
