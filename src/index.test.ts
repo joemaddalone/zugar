@@ -159,6 +159,49 @@ test("buildUserPrompt appends context when provided", () => {
 	expect(withContext).toContain("Previous context: prior step");
 });
 
+test("buildUserPrompt resolves nested object paths in input data", () => {
+	const inputSchema = z.object({
+		address: z.object({
+			city: z.string().meta({ description: "City name" }),
+			zip: z.string().meta({ description: "ZIP code" }),
+		}),
+	});
+
+	const result = buildUserPrompt("schema", inputSchema, inputSchema, {
+		address: { city: "Portland", zip: "97201" },
+	});
+
+	expect(result).toContain("  address.city: Portland");
+	expect(result).toContain("  address.zip: 97201");
+	expect(result).not.toContain("address.city: (empty)");
+});
+
+test("buildUserPrompt resolves array-of-object paths as JSON", () => {
+	const inputSchema = z.object({
+		items: z.array(
+			z.object({ id: z.number().meta({ description: "Item ID" }) }),
+		),
+	});
+
+	const result = buildUserPrompt("schema", inputSchema, inputSchema, {
+		items: [{ id: 1 }, { id: 2 }],
+	});
+
+	expect(result).toContain(`  items[*].id: [{"id":1},{"id":2}]`);
+});
+
+test("buildUserPrompt marks missing nested paths as (empty)", () => {
+	const inputSchema = z.object({
+		address: z.object({
+			city: z.string().meta({ description: "City name" }),
+		}),
+	});
+
+	const result = buildUserPrompt("schema", inputSchema, inputSchema, {});
+
+	expect(result).toContain("  address.city: (empty)");
+});
+
 // ── someModelsJustWontFuckingListen tests ──────────────────────────────────
 
 import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";

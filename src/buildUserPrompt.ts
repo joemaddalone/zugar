@@ -1,6 +1,30 @@
 import type { SchemaWithDescription, InputKind } from "./types";
 import { extractFields } from "./extractFields";
 
+function resolveValue(
+	data: Record<string, unknown> | undefined,
+	path: string,
+): unknown {
+	if (!data) return undefined;
+	// Field names from extractFields use "." between object levels and "[*]"
+	// after array levels. Resolve up to the first "[*]" — arrays render whole.
+	const arrayMarker = path.indexOf("[*]");
+	const targetPath = arrayMarker === -1 ? path : path.slice(0, arrayMarker);
+	let current: unknown = data;
+	for (const segment of targetPath.split(".")) {
+		if (
+			current !== null &&
+			typeof current === "object" &&
+			segment in (current as Record<string, unknown>)
+		) {
+			current = (current as Record<string, unknown>)[segment];
+		} else {
+			return undefined;
+		}
+	}
+	return current;
+}
+
 /**
  * Build the user prompt from schema descriptions.
  * The system prompt is simply `description`.
@@ -26,8 +50,14 @@ export const buildUserPrompt = (
 
 		lines.push("Input data:");
 		for (const f of inputFields) {
-			const value = inputData?.[f.name];
-			lines.push(`  ${f.name}: ${value ?? "(empty)"}`);
+			const value = resolveValue(inputData, f.name);
+			const rendered =
+				value === undefined || value === null
+					? "(empty)"
+					: typeof value === "string"
+						? value
+						: JSON.stringify(value);
+			lines.push(`  ${f.name}: ${rendered}`);
 		}
 		lines.push("");
 
