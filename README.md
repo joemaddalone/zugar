@@ -30,6 +30,8 @@ bun add zugar
 
 All modes accept an optional `context: string` for cross-module continuity.
 
+When `inputSchema` is provided, `inputKind: "schema"` is implied — you only need to set `inputKind` explicitly for the other kinds (default: `"text"`).
+
 ## Quick Start
 
 ### Extraction Mode
