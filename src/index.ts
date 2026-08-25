@@ -47,6 +47,44 @@ export function zugar<
 			context?: string;
 		};
 
+		switch (inputKind) {
+			case "text":
+				if (!typedInput.text) {
+					throw new Error(
+						'inputKind "text" requires a "text" property on the input',
+					);
+				}
+				break;
+			case "image":
+				if (!typedInput.image) {
+					throw new Error(
+						'inputKind "image" requires an "image" property on the input',
+					);
+				}
+				break;
+			case "audio":
+				if (!typedInput.audio) {
+					throw new Error(
+						'inputKind "audio" requires an "audio" property on the input',
+					);
+				}
+				break;
+			case "multimodal":
+				if (!typedInput.text && !typedInput.image && !typedInput.audio) {
+					throw new Error(
+						'inputKind "multimodal" requires at least one of "text", "image", or "audio" on the input',
+					);
+				}
+				break;
+			case "schema":
+				if (!("data" in typedInput) || typedInput.data === undefined) {
+					throw new Error(
+						'inputKind "schema" requires a "data" property on the input',
+					);
+				}
+				break;
+		}
+
 		// Validate input against inputSchema if provided
 		let inputData: Record<string, unknown> | undefined;
 

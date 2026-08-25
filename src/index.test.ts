@@ -315,6 +315,64 @@ test("zugar() throws when inputSchema provided but data missing", async () => {
 	await expect(module({ text: "wrong shape" })).rejects.toThrow();
 });
 
+test("zugar() rejects text kind without text", async () => {
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createMockModel({ x: "y" }),
+		inputKind: "text",
+	});
+	await expect(module({})).rejects.toThrow(
+		'inputKind "text" requires a "text" property',
+	);
+});
+
+test("zugar() rejects image kind without image", async () => {
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createMockModel({ x: "y" }),
+		inputKind: "image",
+	});
+	await expect(module({ text: "no image here" })).rejects.toThrow(
+		'inputKind "image" requires an "image" property',
+	);
+});
+
+test("zugar() rejects audio kind without audio", async () => {
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createMockModel({ x: "y" }),
+		inputKind: "audio",
+	});
+	await expect(module({})).rejects.toThrow(
+		'inputKind "audio" requires an "audio" property',
+	);
+});
+
+test("zugar() rejects multimodal kind with no modality at all", async () => {
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createMockModel({ x: "y" }),
+		inputKind: "multimodal",
+	});
+	await expect(module({})).rejects.toThrow(
+		'inputKind "multimodal" requires at least one of',
+	);
+});
+
+test("zugar() accepts multimodal kind with any single modality", async () => {
+	const module = zugar({
+		description: "d",
+		schema: z.object({ x: z.string().meta({ description: "x" }) }),
+		model: createMockModel({ x: "y" }),
+		inputKind: "multimodal",
+	});
+	await expect(module({ text: "just text" })).resolves.toEqual({ x: "y" });
+});
+
 // ── extractFields direct tests ───────────────────────────────────────────
 
 test("extractFields recurses into nested ZodObject", () => {
