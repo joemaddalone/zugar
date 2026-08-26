@@ -10,6 +10,8 @@ type JSONArray = JSONValue[];
 export type ProviderOptions = Record<string, JSONObject>;
 export type SchemaWithDescription = ZodTypeAny & { description?: string };
 
+export type FileWriter<T> = (output: T) => void | Promise<void>;
+
 export type InputKind = "text" | "image" | "audio" | "multimodal" | "schema";
 
 export type ZugarConfig<
@@ -49,10 +51,12 @@ export type ZugarModule<
 	? (input: {
 			data: z.infer<TInputSchema>;
 			context?: string;
+			fileWriter?: FileWriter<z.infer<TOutputSchema>>;
 		}) => Promise<z.infer<TOutputSchema>>
 	: (input: {
 			text?: string;
 			image?: string;
 			audio?: string | Uint8Array | ArrayBuffer | Buffer | URL;
 			context?: string;
+			fileWriter?: FileWriter<z.infer<TOutputSchema>>;
 		}) => Promise<z.infer<TOutputSchema>>);

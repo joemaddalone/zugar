@@ -6,7 +6,12 @@ import {
 	type TextPart,
 } from "ai";
 import { z } from "zod";
-import type { SchemaWithDescription, ZugarConfig, ZugarModule } from "./types";
+import type {
+	SchemaWithDescription,
+	ZugarConfig,
+	ZugarModule,
+	FileWriter,
+} from "./types";
 import { buildUserPrompt } from "./buildUserPrompt";
 import { someModelsJustWontFuckingListen } from "./someModelsJustWontFuckingListen";
 
@@ -40,6 +45,7 @@ export function zugar<
 		image?: string;
 		audio?: string | Uint8Array | ArrayBuffer | Buffer | URL;
 		context?: string;
+		fileWriter?: FileWriter<z.infer<TOutputSchema>>;
 	};
 
 	async function module(input: RuntimeInput): Promise<unknown> {
@@ -49,6 +55,7 @@ export function zugar<
 			image?: string;
 			audio?: string | Uint8Array | ArrayBuffer | Buffer | URL;
 			context?: string;
+			fileWriter?: FileWriter<z.infer<TOutputSchema>>;
 		};
 
 		switch (inputKind) {
@@ -203,7 +210,10 @@ export function zugar<
 			}
 		}
 
-		return output as z.infer<TOutputSchema>;
+		const validatedOutput = output as z.infer<TOutputSchema>;
+		if (typedInput.fileWriter) await typedInput.fileWriter(validatedOutput);
+
+		return validatedOutput;
 	}
 
 	module.schema = config.schema;
@@ -217,6 +227,7 @@ export type {
 	SchemaWithDescription,
 	ZugarConfig,
 	ZugarModule,
+	FileWriter,
 } from "./types";
 export { z, Output };
 export { createSchema } from "./createSchema";

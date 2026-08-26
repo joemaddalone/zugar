@@ -257,6 +257,47 @@ test("zugar() returns typed output in extraction mode", async () => {
 	expect(result).toEqual({ subject: "cat", tone: "chill" });
 });
 
+test("zugar() calls fileWriter with the validated output", async () => {
+	const schema = z.object({
+		name: z.string().meta({ description: "The name" }),
+	});
+	const written: unknown[] = [];
+	const module = zugar({
+		description: "Extract a name",
+		schema,
+		model: createMockModel({ name: "Zugar" }),
+		inputKind: "text",
+	});
+
+	const result = await module({
+		text: "a project named Zugar",
+		fileWriter: async (output) => {
+			written.push(output);
+		},
+	});
+
+	expect(result).toEqual({ name: "Zugar" });
+	expect(written).toEqual([{ name: "Zugar" }]);
+});
+
+test("zugar() propagates fileWriter errors", async () => {
+	const module = zugar({
+		description: "Extract a name",
+		schema: z.object({ name: z.string().meta({ description: "The name" }) }),
+		model: createMockModel({ name: "Zugar" }),
+		inputKind: "text",
+	});
+
+	await expect(
+		module({
+			text: "a project named Zugar",
+			fileWriter: () => {
+				throw new Error("write failed");
+			},
+		}),
+	).rejects.toThrow("write failed");
+});
+
 test("zugar() returns typed output in transformation mode", async () => {
 	const inputSchema = z.object({
 		subject: z.string().meta({ description: "The subject" }),

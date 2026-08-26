@@ -59,6 +59,24 @@ const result = await PhotoReader({ image: base64Image });
 // result is fully typed as { subject: string; style: string; tone: string }
 ```
 
+### Saving Results
+
+Pass an optional `fileWriter` callback to save or format each validated result.
+The callback receives only the schema-validated output, so you can use Bun,
+Node, a database, or any custom destination:
+
+```typescript
+const result = await PhotoReader({
+  image: base64Image,
+  fileWriter: async (output) => {
+    await Bun.write("photo.json", JSON.stringify(output, null, 2));
+  },
+});
+```
+
+`fileWriter` is intentionally runtime-agnostic and is called after successful
+output validation. If writing fails, its error is propagated to the caller.
+
 ### Audio Mode
 
 With a transcription model, audio is transcribed first and the transcript is
